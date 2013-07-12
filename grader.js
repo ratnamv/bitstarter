@@ -28,6 +28,8 @@ var cheerio = require('cheerio');
 var HTMLFILE_DEFAULT = "index.html";
 var CHECKSFILE_DEFAULT = "checks.json";
 var DEFAULT_URL = "http:\/\/google.com";
+var URLFILE_DEFAULT = "temp.txt";
+var urlRead = 0;
 
 var assertFileExists = function(infile) {
         console.log("Checking ASSERT FILE " +infile);
@@ -39,15 +41,23 @@ var assertFileExists = function(infile) {
     return instr;
 };
 
+var setUrlRead = function () { urlRead = 1; };
 
 var getUrlFile = function(inUrl) {
-        console.log("Checking ASSERT URL " + inUrl);
-	rest.get(inUrl).once('complete', function(data, rsp){
-	console.log("Return code:"+rsp.toString());
-	return(data.toString());	
+        console.log("In Get URL file for URL:" + inUrl);
+	rest.get(inUrl).on('complete', function(data, rsp){
+	if (rsp instanceof Error) {
+		console.error('Error: ' + util.format(rsp.message));
+                process.exit(1); // http://nodejs.org/api/process.html#process_process_exit_code
+	}
+
+	urlRead = 1;
+	fs.writeFileSync(URLFILE_DEFAULT, data);
 	});
-	return(" ");
+
+	return URLFILE_DEFAULT;
 };
+
 
 var cheerioHtmlFile = function(htmlfile) {
     return cheerio.load(fs.readFileSync(htmlfile));
@@ -58,6 +68,7 @@ var loadChecks = function(checksfile) {
 };
 
 var checkHtmlFile = function(htmlfile, checksfile) {
+	console.log("HTML FILE IS: "+htmlfile);
     $ = cheerioHtmlFile(htmlfile);
     var checks = loadChecks(checksfile).sort();
     var out = {};
@@ -78,12 +89,21 @@ if(require.main == module) {
     program
         .option('-c, --checks <check_file>', 'Path to checks.json', clone(assertFileExists), CHECKSFILE_DEFAULT)
         .option('-f, --file <html_file>', 'Path to index.html', clone(assertFileExists), HTMLFILE_DEFAULT)
-        .option('-u, --url <url_name>', 'Specify url to check', clone(getUrlFile), DEFAULT_URL)
+        .option('-u, --url <url_name>', 'Specify url to check', clone(setUrlRead), DEFAULT_URL)
         .parse(process.argv);
 
-    var checkJson = checkHtmlFile(program.file, program.checks);
-    var outJson = JSON.stringify(checkJson, null, 4);
-    console.log(outJson);
+    if (urlRead) {
+    	console.log("Checking URLRead success");
+	var localUrlFile = getUrlFile(program.url);
+    	var checkJson = checkHtmlFile(URLFILE_DEFAULT, program.checks);
+    	var outJson = JSON.stringify(checkJson, null, 4);
+    	console.log(outJson);
+    } else {
+    	console.log("Checking FILE READ success");
+    	var checkJson = checkHtmlFile(program.file, program.checks);
+    	var outJson = JSON.stringify(checkJson, null, 4);
+    	console.log(outJson);
+    }
 } else {
     exports.checkHtmlFile = checkHtmlFile;
 }
