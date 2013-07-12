@@ -28,11 +28,11 @@ var cheerio = require('cheerio');
 var HTMLFILE_DEFAULT = "index.html";
 var CHECKSFILE_DEFAULT = "checks.json";
 var DEFAULT_URL = "http:\/\/google.com";
-var URLFILE_DEFAULT = "temp.txt";
+var URLFILE_DEFAULT = "temp.html";
 var urlRead = 0;
 
 var assertFileExists = function(infile) {
-        console.log("Checking ASSERT FILE " +infile);
+       // console.log("Checking ASSERT FILE " +infile);
     var instr = infile.toString();
     if(!fs.existsSync(instr)) {
         console.log("%s does not exist. Exiting.", instr);
@@ -41,11 +41,17 @@ var assertFileExists = function(infile) {
     return instr;
 };
 
-var setUrlRead = function () { urlRead = 1; };
+//Read URL parameter and set the url flag
+var setUrlRead = function (inUrl) { 
+	urlRead = 1; 
+	var instr = inUrl.toString();
+	return instr;
+};
 
+//Read URL to a temp file
 var getUrlFile = function(inUrl) {
-        console.log("In Get URL file for URL:" + inUrl);
-	rest.get(inUrl).on('complete', function(data, rsp){
+        //console.log("In Get URL file for URL:" + inUrl);
+	rest.get(inUrl.toString()).on('complete', function(data, rsp){
 	if (rsp instanceof Error) {
 		console.error('Error: ' + util.format(rsp.message));
                 process.exit(1); // http://nodejs.org/api/process.html#process_process_exit_code
@@ -68,7 +74,7 @@ var loadChecks = function(checksfile) {
 };
 
 var checkHtmlFile = function(htmlfile, checksfile) {
-	console.log("HTML FILE IS: "+htmlfile);
+//	console.log("HTML FILE IS: "+htmlfile);
     $ = cheerioHtmlFile(htmlfile);
     var checks = loadChecks(checksfile).sort();
     var out = {};
@@ -93,13 +99,13 @@ if(require.main == module) {
         .parse(process.argv);
 
     if (urlRead) {
-    	console.log("Checking URLRead success");
+    	//console.log("Checking URLRead success "+ program.url);
 	var localUrlFile = getUrlFile(program.url);
     	var checkJson = checkHtmlFile(URLFILE_DEFAULT, program.checks);
     	var outJson = JSON.stringify(checkJson, null, 4);
     	console.log(outJson);
     } else {
-    	console.log("Checking FILE READ success");
+    	//console.log("Checking FILE READ success");
     	var checkJson = checkHtmlFile(program.file, program.checks);
     	var outJson = JSON.stringify(checkJson, null, 4);
     	console.log(outJson);
